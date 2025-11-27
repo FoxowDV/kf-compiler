@@ -99,6 +99,8 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
         let position = calculate_position(program, m.1);
         let token = Token::get_token(m.0, Some(&current_input[m.1..m.2]));
         token_vec.push(TokenWithPosition { token, position });
+
+        last_end = m.2;
     }
 
     token_vec
