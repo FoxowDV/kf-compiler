@@ -1,14 +1,14 @@
 [package]
-name = "kf-compiler"
+name = "kf_compiler"
 version = "0.1.0"
 edition = "2024"
 
 [lib]
-name = "kf-compiler"
+name = "kf_compiler"
 path = "src/lib.rs"
 
 [[bin]]
-name = "kf-compiler"
+name = "kf_compiler"
 path = "src/main.rs"
 
 [dependencies]
