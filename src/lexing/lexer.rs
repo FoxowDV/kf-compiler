@@ -8,6 +8,9 @@ use crate::lexing::token::TokenWithPosition;
 pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
     let current_input = program;
     let tokens = [
+        "Plusplus",
+        "Minusminus",
+
         "Utl",
         "Of",
         "Onoff",
@@ -32,14 +35,11 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
         "Tupni",
         "Join",
 
-        "Identifier",
 
         "Is",
         "Plus",
-        "Plusplus",
         "Mult",
         "Minus",
-        "Minusminus",
         "By",
         "Mod",
         "And",
@@ -50,10 +50,12 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
         "Eq",
         "Noteq",
 
-        "IntegerLiteral",
         "FloatLiteral",
+        "IntegerLiteral",
         "CharLiteral",
         "StringLiteral",
+
+        "Identifier",
 
         "Semicolon",
         "LeftParen",
