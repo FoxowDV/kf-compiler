@@ -107,7 +107,7 @@ impl Token {
 
             "Identifier" => Token::Identifier(value.unwrap().to_string()),
 
-            "Is" => Token::Plus("is".to_string()),
+            "Is" => Token::Is("is".to_string()),
             "Plus" => Token::Plus("plus".to_string()),
             "Plusplus" => Token::Plusplus("plusplus".to_string()),
             "Mult" => Token::Mult("mult".to_string()),
@@ -196,5 +196,82 @@ impl Token {
             "RightBracket" => r"\]",
             _ => panic!("Invalid token type: {}", token_type),
         }.to_string()
+    }
+
+
+    pub fn name(&self) -> &str {
+        match self {
+            Token::Utl(_) => "Utl",
+            Token::Of(_) => "Of",
+            Token::Onoff(_) => "Onoff",
+            Token::On(_) => "On",
+            Token::Wii(_) => "Wii",
+            Token::Mote(_) => "Mote",
+            Token::Dec(_) => "Dec",
+            Token::Kf(_) => "Kf",
+            Token::Ont(_) => "Ont",
+            Token::Uont(_) => "Uont",
+            Token::Michi(_) => "Michi",
+            Token::Ntr(_) => "Ntr",
+            Token::Chip(_) => "Chip",
+            Token::Yes(_) => "Yes",
+            Token::No(_) => "No",
+            Token::Yesorno(_) => "Yesorno",
+            Token::Next(_) => "Next",
+            Token::Ash(_) => "Ash",
+            Token::Brokie(_) => "Brokie",
+            Token::Send(_) => "Send",
+            Token::Tnirp(_) => "Tnirp",
+            Token::Tupni(_) => "Tupni",
+            Token::Join(_) => "Join",
+            Token::Identifier(_) => "Identifier",
+            Token::Is(_) => "Is",
+            Token::Plus(_) => "Plus",
+            Token::Plusplus(_) => "Plusplus",
+            Token::Mult(_) => "Mult",
+            Token::Minus(_) => "Minus",
+            Token::Minusminus(_) => "Minusminus",
+            Token::By(_) => "By",
+            Token::Mod(_) => "Mod",
+            Token::And(_) => "And",
+            Token::Or(_) => "Or",
+            Token::Nah(_) => "Nah",
+            Token::Great(_) => "Great",
+            Token::Lesst(_) => "Lesst",
+            Token::Eq(_) => "Eq",
+            Token::Noteq(_) => "Noteq",
+            Token::IntegerLiteral(_) => "IntegerLiteral",
+            Token::FloatLiteral(_) => "FloatLiteral",
+            Token::CharLiteral(_) => "CharLiteral",
+            Token::StringLiteral(_) => "StringLiteral",
+            Token::Semicolon(_) => "Semicolon",
+            Token::LeftParen(_) => "LeftParen",
+            Token::RightParen(_) => "RightParen",
+            Token::LeftBrace(_) => "LeftBrace",
+            Token::RightBrace(_) => "RightBrace",
+            Token::LeftBracket(_) => "LeftBracket",
+            Token::RightBracket(_) => "RightBracket",
+        }
+    }
+    
+    pub fn value(&self) -> String {
+        match self {
+            Token::Utl(s) | Token::Of(s) | Token::Onoff(s) | Token::On(s) |
+            Token::Wii(s) | Token::Mote(s) | Token::Dec(s) | Token::Kf(s) |
+            Token::Ont(s) | Token::Uont(s) | Token::Michi(s) | Token::Ntr(s) |
+            Token::Chip(s) | Token::Yes(s) | Token::No(s) | Token::Yesorno(s) |
+            Token::Next(s) | Token::Ash(s) | Token::Brokie(s) | Token::Send(s) |
+            Token::Tnirp(s) | Token::Tupni(s) | Token::Join(s) |
+            Token::Identifier(s) | Token::Is(s) |Token::Plus(s) | Token::Plusplus(s) |
+            Token::Mult(s) | Token::Minus(s) | Token::Minusminus(s) |
+            Token::By(s) | Token::Mod(s) | Token::And(s) | Token::Or(s) |
+            Token::Nah(s) | Token::Great(s) | Token::Lesst(s) | Token::Eq(s) |
+            Token::Noteq(s) | Token::Semicolon(s) | Token::LeftParen(s) |
+            Token::RightParen(s) | Token::LeftBrace(s) | Token::RightBrace(s) |
+            Token::LeftBracket(s) | Token::RightBracket(s) | Token::StringLiteral(s) => s.clone(),
+            Token::IntegerLiteral(i) => i.to_string(),
+            Token::FloatLiteral(f) => f.to_string(),
+            Token::CharLiteral(c) => c.to_string(),
+        }
     }
 }
