@@ -66,9 +66,6 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
 
     let mut match_vec: Vec<(&str, usize, usize)> = Vec::new();
 
-
-    let mut match_vec: Vec<(&str, usize, usize)> = Vec::new();
-
     for token in tokens.iter() {
         let token_regex = Token::get_token_regex(token);
         let re = Regex::new(token_regex.as_str()).unwrap();
@@ -102,54 +99,6 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
 
 
 // It calculates the position based on the start that is byte_offset
-fn calculate_position(input: &str, byte_offset: usize) -> Position {
-    let mut line = 1;
-    let mut col = 1;
-
-    for (i, ch) in input.chars().enumerate() {
-        if i >= byte_offset {
-            break;
-        }
-
-        if ch == '\n' {
-            line += 1;
-            col = 1;
-        } else {
-            col += 1;
-        }
-    }
-
-    Position { line, col }
-}
-    for token in tokens.iter() {
-        let token_regex = Token::get_token_regex(token);
-        let re = Regex::new(token_regex.as_str()).unwrap();
-        let matched = re.find_iter(current_input);
-        let all_matches = matched.collect::<Vec<_>>();
-        
-        if all_matches.len() == 0 {
-            continue;
-        }
-
-        for m in all_matches.iter() {
-            match_vec.push((token, m.start(), m.end()));
-        }
-
-    }
-    match_vec.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| (b.2 - b.1).cmp(&(a.2 - a.1))));
-
-    let mut token_vec: Vec<TokenWithPosition> = Vec::new();
-    for m in match_vec.iter() {
-        let position = calculate_position(program, m.1);
-        let token = Token::get_token(m.0, Some(&current_input[m.1..m.2]));
-        token_vec.push(TokenWithPosition { token, position });
-    }
-
-    token_vec
-}
-
-
-// It just goes until it reaches the start position of the match
 fn calculate_position(input: &str, byte_offset: usize) -> Position {
     let mut line = 1;
     let mut col = 1;
