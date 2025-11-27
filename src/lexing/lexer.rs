@@ -90,7 +90,12 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
 
 
     let mut token_vec: Vec<TokenWithPosition> = Vec::new();
+    let mut last_end = 0;
     for m in match_vec.iter() {
+        // if already got the token at this position, skip
+        if m.1 < last_end {
+            continue;
+        }
         let position = calculate_position(program, m.1);
         let token = Token::get_token(m.0, Some(&current_input[m.1..m.2]));
         token_vec.push(TokenWithPosition { token, position });
