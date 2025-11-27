@@ -3,5 +3,13 @@ name = "kf-compiler"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "kf-compiler"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kf-compiler"
+path = "src/main.rs"
+
 [dependencies]
 regex = "1"
