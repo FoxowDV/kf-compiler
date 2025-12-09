@@ -75,6 +75,9 @@ pub enum Token{
     RightBrace(String),
     LeftBracket(String),
     RightBracket(String),
+
+    // Errores
+    Error(String),
 }
 
 
@@ -133,7 +136,7 @@ impl Token {
             "RightBrace" => Token::RightBrace("}".to_string()),
             "LeftBracket" => Token::LeftBracket("[".to_string()),
             "RightBracket" => Token::RightBracket("]".to_string()),
-            _ => panic!("Invalid token type: {}", token_type),
+            _ => "Error" => Token::Error("Lexema invalido".to_string()),
         }
     }
 
