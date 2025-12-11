@@ -1,0 +1,163 @@
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+
+// Keywords
+utl = { "utl" }
+off = { "off" }
+onoff = { "onoff" }
+on = { "on" }
+wii = { "wii" }
+mote = { "mote" }
+dec = { "dec" }
+kf = { "kf" }
+ont = { "ont" }
+uont = { "uont" }
+michi = { "michi" }
+ntr = { "ntr" }
+chip = { "chip" }
+yes = { "yes" }
+no = { "no" }
+yesorno = { "yesorno" }
+next = { "next" }
+ash = { "ash" }
+brokie = { "brokie" }
+send = { "send" }
+tnirp = { "tnirp" }
+tupni = { "tupni" }
+join = { "join" }
+
+// Identifiers
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+// Operators
+is = { "is" }
+plus = { "plus" }
+plusplus = { "plusplus" }
+mult = { "mult" }
+minus = { "minus" }
+minusminus = { "minusminus" }
+by = { "by" }
+mod_op = { "mod" }
+
+// Logical Operators
+and = { "and" }
+or = { "or" }
+nah = { "nah" }
+great = { "great" }
+lesst = { "lesst" }
+eq = { "eq" }
+noteq = { "noteq" }
+
+// Literals
+integer_literal = @{ ASCII_DIGIT+ }
+float_literal = @{ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
+char_literal = @{ "'" ~ ANY ~ "'" }
+string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+// Punctuation
+semicolon = { ";" }
+left_paren = { "(" }
+right_paren = { ")" }
+left_brace = { "{" }
+right_brace = { "}" }
+left_bracket = { "[" }
+right_bracket = { "]" }
+
+// RUles
+// nivel base
+program = { SOI ~ function_def* ~ EOI }
+
+// funciones
+function_def = { utl ~ identifier ~ left_paren ~ param_list? ~ right_paren ~ ":" ~ types ~ block }
+param_list = {param ~ ("," ~ param)* }
+param = {identifier ~ ":" ~ types }
+
+types = { ont | uont | yesorno | dec | michi | ntr | chip }
+
+
+statement = {
+    const_declaration
+    | variable_declaration
+    | assignment
+    | if_statement
+    | switch_statement
+    | for_loop
+    | function_call 
+    | print_statement
+    | input_statement
+    | break_statement
+    | continue_statement
+    | return_statement
+    | expression_statement
+}
+
+const_declaration = { kf ~ identifier ~ ":" ~ types ~ is ~ expression ~ semicolon }
+
+variable_declaration = { dec ~ identifier ~ ":" ~ is ~ expression ~ semicolon }
+
+assignment = { identifier ~ is ~ expression ~ semicolon }
+
+
+// bloques
+if_statement = { off ~ left_paren ~ expression ~ right_paren ~ block ~ onoff_statement* ~ (on ~ block)? }
+
+onoff_statement = { onoff ~ left_paren ~ expression ~ right_paren ~ block }
+
+switch_statement = { wii ~ left_paren ~ expression ~ right_paren ~ left_brace ~ case_clause* ~ right_brace }
+
+case_clause = { mote ~ expression ~ ":" ~ statement* }
+
+for_loop = { ash ~ left_paren ~ assignment ~ expression ~ semicolon ~ expression ~ right_paren ~ block }
+
+print_statement = { tnirp ~ left_paren ~ expression ~ right_paren ~ semicolon }
+
+input_statement = { tupni ~ left_paren ~ identifier ~ right_paren ~ semicolon }
+
+return_statement = { send ~ expression ~ semicolon }
+
+break_statement = { brokie ~ semicolon }
+
+continue_statement = { next ~ semicolon }
+
+expression_statement = { expression ~ semicolon }
+
+block = { left_brace ~ statement* ~ right_brace }
+
+expression = { logical_or }
+
+// lo de andtro de los parentesis
+
+logical_or = { logical_and ~ (or ~ logical_and)* }
+
+logical_and = { equality ~ (and ~ equality)* }
+
+equality = { comparison ~ ((eq | noteq) ~ comparison)* }
+
+comparison = { term ~ ((great | lesst) ~ term)* }
+
+term = { factor ~ ((plus | minus) ~ factor)* }
+
+factor = { unary ~ ((mult | by | mod_op) ~ unary)* }
+
+unary = { (nah | minus)? ~ postfix }
+
+postfix = { primary ~ (plusplus | minusminus)* }
+
+primary = {
+    integer_literal
+    | float_literal
+    | char_literal
+    | string_literal
+    | yes
+    | no
+    | function_call 
+    | array_access
+    | identifier
+    | left_paren ~ expression ~ right_paren
+}
+
+
+function_call = { identifier ~ left_paren ~ arg_list? ~ right_paren }
+
+arg_list = { expression ~ ("," ~ expression)* }
+
+array_access = { identifier ~ left_bracket ~ expression ~ right_bracket }

@@ -1,6 +1,8 @@
 mod lexing;
+mod parser;
 
 use lexing::lexer::lex_program;
+use parser::parser::parse_program;
 use std::env;
 use std::fs;
 use std::process;
@@ -26,4 +28,7 @@ fn main() {
     for token in tokens.iter() {
         println!("{:?}", token);
     }
+
+    let parsed = parse_program(&program).unwrap();
+    dbg!(&parsed);
 }

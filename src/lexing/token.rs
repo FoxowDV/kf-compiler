@@ -1,5 +1,5 @@
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Position {
     pub line: usize,
     pub col: usize,
@@ -16,7 +16,7 @@ pub struct TokenWithPosition {
 pub enum Token{
     // Keywords
     Utl(String),
-    Of(String),
+    Off(String),
     Onoff(String),
     On(String),
     Wii(String),
@@ -85,7 +85,7 @@ impl Token {
     pub fn get_token(token_type: &str, value: Option<&str>) -> Token {
         match token_type {
             "Utl" => Token::Utl("utl".to_string()),
-            "Of" => Token::Of("of".to_string()),
+            "Off" => Token::Off("off".to_string()),
             "Onoff" => Token::Onoff("onoff".to_string()),
             "On" => Token::On("on".to_string()),
             "Wii" => Token::Wii("wii".to_string()),
@@ -136,7 +136,7 @@ impl Token {
             "RightBrace" => Token::RightBrace("}".to_string()),
             "LeftBracket" => Token::LeftBracket("[".to_string()),
             "RightBracket" => Token::RightBracket("]".to_string()),
-            _ => "Error" => Token::Error("Lexema invalido".to_string()),
+            _ => Token::Error("Lexema invalido".to_string()),
         }
     }
 
@@ -144,7 +144,7 @@ impl Token {
     pub fn get_token_regex(token_type: &str) -> String {
         match token_type {
             "Utl" => r"\butl\b",
-            "Of" => r"\bof\b",
+            "Off" => r"\boff\b",
             "Onoff" => r"\bonoff\b",
             "On" => r"\bon\b",
             "Wii" => r"\bwii\b",
@@ -205,7 +205,7 @@ impl Token {
     pub fn name(&self) -> &str {
         match self {
             Token::Utl(_) => "Utl",
-            Token::Of(_) => "Of",
+            Token::Off(_) => "Off",
             Token::Onoff(_) => "Onoff",
             Token::On(_) => "On",
             Token::Wii(_) => "Wii",
@@ -254,12 +254,13 @@ impl Token {
             Token::RightBrace(_) => "RightBrace",
             Token::LeftBracket(_) => "LeftBracket",
             Token::RightBracket(_) => "RightBracket",
+            _ => "Error",
         }
     }
     
     pub fn value(&self) -> String {
         match self {
-            Token::Utl(s) | Token::Of(s) | Token::Onoff(s) | Token::On(s) |
+            Token::Utl(s) | Token::Off(s) | Token::Onoff(s) | Token::On(s) |
             Token::Wii(s) | Token::Mote(s) | Token::Dec(s) | Token::Kf(s) |
             Token::Ont(s) | Token::Uont(s) | Token::Michi(s) | Token::Ntr(s) |
             Token::Chip(s) | Token::Yes(s) | Token::No(s) | Token::Yesorno(s) |
@@ -271,7 +272,7 @@ impl Token {
             Token::Nah(s) | Token::Great(s) | Token::Lesst(s) | Token::Eq(s) |
             Token::Noteq(s) | Token::Semicolon(s) | Token::LeftParen(s) |
             Token::RightParen(s) | Token::LeftBrace(s) | Token::RightBrace(s) |
-            Token::LeftBracket(s) | Token::RightBracket(s) | Token::StringLiteral(s) => s.clone(),
+            Token::LeftBracket(s) | Token::RightBracket(s) | Token::StringLiteral(s) | Token::Error(s) => s.clone(),
             Token::IntegerLiteral(i) => i.to_string(),
             Token::FloatLiteral(f) => f.to_string(),
             Token::CharLiteral(c) => c.to_string(),

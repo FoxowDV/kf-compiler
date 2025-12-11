@@ -12,7 +12,7 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
         "Minusminus",
 
         "Utl",
-        "Of",
+        "Off",
         "Onoff",
         "On",
         "Wii",
@@ -108,7 +108,7 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
 
 
 // It calculates the position based on the start that is byte_offset
-fn calculate_position(input: &str, byte_offset: usize) -> Position {
+pub fn calculate_position(input: &str, byte_offset: usize) -> Position {
     let mut line = 1;
     let mut col = 1;
 
