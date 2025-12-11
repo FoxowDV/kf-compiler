@@ -73,7 +73,7 @@ function_def = { utl ~ identifier ~ left_paren ~ param_list? ~ right_paren ~ ":"
 param_list = {param ~ ("," ~ param)* }
 param = {identifier ~ ":" ~ types }
 
-types = { ont | uont | yesorno | dec | michi | ntr | chip }
+types = { ont | uont | yesorno | michi | ntr | chip }
 
 
 statement = {
