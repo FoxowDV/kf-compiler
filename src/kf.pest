@@ -2,28 +2,28 @@ WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
 COMMENT = _{ "//" ~ ( !"\n" ~ ANY)* }
 
 // Keywords
-utl = { "utl" }
+utl = { "utl" } 
 off = { "off" }
 onoff = { "onoff" }
 on = { "on" }
 wii = { "wii" }
 mote = { "mote" }
 dec = { "dec" }
-kf = { "kf" }
-ont = { "ont" }
-uont = { "uont" }
-michi = { "michi" }
-ntr = { "ntr" }
-chip = { "chip" }
-yes = { "yes" }
-no = { "no" }
-yesorno = { "yesorno" }
-next = { "next" }
-ash = { "ash" }
-brokie = { "brokie" }
-send = { "send" }
-tnirp = { "tnirp" }
-tupni = { "tupni" }
+kf = { "kf" }               //constant
+ont = { "ont" }             //int
+uont = { "uont" }           //uint
+michi = { "michi" }         //float
+ntr = { "ntr" }             //string
+chip = { "chip" }           //char
+yes = { "yes" }             //true
+no = { "no" }               //false
+yesorno = { "yesorno" }     //boolean
+next = { "next" }           //continue
+ash = { "ash" }             //for
+brokie = { "brokie" }       //break
+send = { "send" }           //return
+tnirp = { "tnirp" }         
+tupni = { "tupni" }     
 
 // Identifiers
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
@@ -37,10 +37,10 @@ mult = { "mult" }
 minus = { "minus" }
 minusminus = { "minusminus" }
 by = { "by" }
-mod_op = { "mod" }
+mod_op = { "mod" } 
 
 // Logical Operators
-and = { "and" }
+and = { "and" } 
 or = { "or" }
 nah = { "nah" }
 great = { "great" }
@@ -92,11 +92,11 @@ statement = {
     | expression_statement
 }
 
-const_declaration = { kf ~ identifier ~ colon ~ types ~ is ~ expression ~ semicolon }
+const_declaration = { kf ~ identifier ~ colon ~ types ~ is ~ expression ~ semicolon } 
 
-variable_declaration = { dec ~ identifier ~ colon ~ types ~ is ~ expression ~ semicolon }
+variable_declaration = { dec ~ identifier ~ colon ~ types ~ is ~ expression ~ semicolon } 
 
-assignment = { identifier ~ is ~ expression ~ semicolon }
+assignment = { identifier ~ is ~ expression ~ semicolon } // a is 4;
 function_call_statement = { function_call ~ semicolon }
 
 // bloques
@@ -138,7 +138,7 @@ term = { factor ~ ((plus | minus | join) ~ factor)* }
 
 factor = { unary ~ ((mult | by | mod_op) ~ unary)* }
 
-unary = { (nah | minus)? ~ (primary | left_paren ~ expression ~ right_paren) }
+unary = { (nah | minus)? ~ (primary | left_paren ~ expression ~ right_paren) } 
 
 postfix = { primary ~ (plusplus | minusminus)* }
 
