@@ -29,6 +29,6 @@ fn main() {
         println!("{:?}", token);
     }
 
-    let parsed = parse_program(&program).unwrap();
-    dbg!(&parsed);
+    let parsed = parse_program(&program);
+    dbg!(parsed);
 }

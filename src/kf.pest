@@ -1,4 +1,5 @@
 WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+COMMENT = _{ "//" ~ ( !"\n" ~ ANY)* }
 
 // Keywords
 utl = { "utl" }
@@ -23,12 +24,12 @@ brokie = { "brokie" }
 send = { "send" }
 tnirp = { "tnirp" }
 tupni = { "tupni" }
-join = { "join" }
 
 // Identifiers
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 // Operators
+join = { "join" }
 is = { "is" }
 plus = { "plus" }
 plusplus = { "plusplus" }
@@ -54,6 +55,7 @@ char_literal = @{ "'" ~ ANY ~ "'" }
 string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
 // Punctuation
+colon = { ":" }
 semicolon = { ";" }
 left_paren = { "(" }
 right_paren = { ")" }
@@ -81,7 +83,7 @@ statement = {
     | if_statement
     | switch_statement
     | for_loop
-    | function_call 
+    | function_call_statement
     | print_statement
     | input_statement
     | break_statement
@@ -92,10 +94,10 @@ statement = {
 
 const_declaration = { kf ~ identifier ~ ":" ~ types ~ is ~ expression ~ semicolon }
 
-variable_declaration = { dec ~ identifier ~ ":" ~ is ~ expression ~ semicolon }
+variable_declaration = { dec ~ identifier ~ ":" ~ types ~ is ~ expression ~ semicolon }
 
 assignment = { identifier ~ is ~ expression ~ semicolon }
-
+function_call_statement = { function_call ~ semicolon }
 
 // bloques
 if_statement = { off ~ left_paren ~ expression ~ right_paren ~ block ~ onoff_statement* ~ (on ~ block)? }
@@ -134,7 +136,7 @@ equality = { comparison ~ ((eq | noteq) ~ comparison)* }
 
 comparison = { term ~ ((great | lesst) ~ term)* }
 
-term = { factor ~ ((plus | minus) ~ factor)* }
+term = { factor ~ ((plus | minus | join) ~ factor)* }
 
 factor = { unary ~ ((mult | by | mod_op) ~ unary)* }
 
@@ -143,14 +145,14 @@ unary = { (nah | minus)? ~ postfix }
 postfix = { primary ~ (plusplus | minusminus)* }
 
 primary = {
-    integer_literal
-    | float_literal
+    float_literal
+    | integer_literal
     | char_literal
     | string_literal
     | yes
     | no
-    | function_call 
     | array_access
+    | function_call 
     | identifier
     | left_paren ~ expression ~ right_paren
 }

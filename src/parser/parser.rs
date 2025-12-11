@@ -151,7 +151,7 @@ pub enum ExpressionKind {
 pub enum BinaryOperator {
     Add, Subtract, Multiply, Divide, Modulo,
     Equal, NotEqual, GreaterThan, LessThan,
-    And, Or,
+    And, Or, Join,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -334,7 +334,7 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
             StatementKind::Assignment { name, value }
         }
         
-        Rule::function_call => {
+        Rule::function_call_statement => {
             let func_call = inner.into_inner().next().unwrap();
             let (name, args) = parse_function_call_inner(func_call, source)?;
             StatementKind::FunctionCall { name, args }
@@ -416,16 +416,16 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
         
         Rule::print_statement => {
             let mut parts = inner.into_inner();
-            parts.next(); // Skip 'tnirp'
-            parts.next(); // Skip '('
+            parts.next(); //  'tnirp'
+            parts.next(); //  '('
             let value = parse_expression(parts.next().unwrap(), source)?;
             StatementKind::Print { value }
         }
         
         Rule::input_statement => {
             let mut parts = inner.into_inner();
-            parts.next(); // Skip 'tupni'
-            parts.next(); // Skip '('
+            parts.next(); //  'tupni'
+            parts.next(); //  '('
             let var_name = parts.next().unwrap().as_str().to_string();
             StatementKind::Input { var_name }
         }
@@ -514,8 +514,8 @@ fn parse_binary_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> R
             Rule::lesst => BinaryOperator::LessThan,
             Rule::and => BinaryOperator::And,
             Rule::or => BinaryOperator::Or,
+            Rule::join => BinaryOperator::Join,
             _ => {
-                // This must be the next operand
                 let right = parse_expression(op_pair, source)?;
                 if parts.peek().is_none() {
                     return Ok(left);
@@ -645,10 +645,22 @@ fn parse_function_call_inner(pair: pest::iterators::Pair<Rule>, source: &str) ->
     parts.next(); // Skip '('
     
     let mut args = Vec::new();
-    if let Some(arg_list) = parts.next() {
-        if let Rule::arg_list = arg_list.as_rule() {
-            for arg in arg_list.into_inner() {
-                args.push(parse_expression(arg, source)?);
+    if let Some(next) = parts.next() {
+        match next.as_rule() {
+            Rule::arg_list => {
+                for arg in next.into_inner() {
+                    args.push(parse_expression(arg, source)?);
+                }
+                parts.next(); // )
+            },
+            Rule::right_paren => {
+                //
+            },
+            _ => {
+                return Err(ParseError {
+                    message: format!("Unexpected in function {:?}", next.as_rule()),
+                    span: None,
+                })
             }
         }
     }
