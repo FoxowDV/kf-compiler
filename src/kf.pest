@@ -69,9 +69,9 @@ right_bracket = { "]" }
 program = { SOI ~ function_def* ~ EOI }
 
 // funciones
-function_def = { utl ~ identifier ~ left_paren ~ param_list? ~ right_paren ~ ":" ~ types ~ block }
+function_def = { utl ~ identifier ~ left_paren ~ param_list? ~ right_paren ~ colon ~ types ~ block }
 param_list = {param ~ ("," ~ param)* }
-param = {identifier ~ ":" ~ types }
+param = {identifier ~ colon ~ types }
 
 types = { ont | uont | yesorno | michi | ntr | chip }
 
@@ -92,9 +92,9 @@ statement = {
     | expression_statement
 }
 
-const_declaration = { kf ~ identifier ~ ":" ~ types ~ is ~ expression ~ semicolon }
+const_declaration = { kf ~ identifier ~ colon ~ types ~ is ~ expression ~ semicolon }
 
-variable_declaration = { dec ~ identifier ~ ":" ~ types ~ is ~ expression ~ semicolon }
+variable_declaration = { dec ~ identifier ~ colon ~ types ~ is ~ expression ~ semicolon }
 
 assignment = { identifier ~ is ~ expression ~ semicolon }
 function_call_statement = { function_call ~ semicolon }
@@ -106,7 +106,7 @@ onoff_statement = { onoff ~ left_paren ~ expression ~ right_paren ~ block }
 
 switch_statement = { wii ~ left_paren ~ expression ~ right_paren ~ left_brace ~ case_clause* ~ right_brace }
 
-case_clause = { mote ~ expression ~ ":" ~ statement* }
+case_clause = { mote ~ expression ~ colon ~ statement* }
 
 for_loop = { ash ~ left_paren ~ assignment ~ expression ~ semicolon ~ expression ~ right_paren ~ block }
 
@@ -126,8 +126,6 @@ block = { left_brace ~ statement* ~ right_brace }
 
 expression = { logical_or }
 
-// lo de andtro de los parentesis
-
 logical_or = { logical_and ~ (or ~ logical_and)* }
 
 logical_and = { equality ~ (and ~ equality)* }
@@ -140,7 +138,7 @@ term = { factor ~ ((plus | minus | join) ~ factor)* }
 
 factor = { unary ~ ((mult | by | mod_op) ~ unary)* }
 
-unary = { (nah | minus)? ~ postfix }
+unary = { (nah | minus)? ~ (primary | left_paren ~ expression ~ right_paren) }
 
 postfix = { primary ~ (plusplus | minusminus)* }
 

@@ -229,10 +229,9 @@ fn parse_function_def(pair: pest::iterators::Pair<Rule>, source: &str) -> Result
         }
         parts.next(); //  ')'
         parts.next(); //  ':'
-    } else if Rule::right_paren == next.as_rule() {
+    } else if let Rule::right_paren = next.as_rule() {
         parts.next(); //  ':'
     } else {
-        parts.next(); //  ':'
     }
     
     let return_type = parse_type(parts.next().unwrap())?;
@@ -543,27 +542,28 @@ fn parse_binary_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> R
 fn parse_unary_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<Expression, ParseError> {
     let span = SourceSpan::from_pest_span(pair.as_span(), source);
     let mut parts = pair.into_inner();
-    let first = parts.next().unwrap();
-    
-    let kind = match first.as_rule() {
-        Rule::nah => {
-            let operand = parse_expression(parts.next().unwrap(), source)?;
-            ExpressionKind::UnaryOp {
-                op: UnaryOperator::Not,
-                operand: Box::new(operand),
+
+    if let Some(first) = parts.next() {
+        match first.as_rule() {
+            Rule::nah => {
+                let operand = parse_expression(parts.next().unwrap(), source)?;
+                Ok(Expression {
+                    kind: ExpressionKind::UnaryOp { op: UnaryOperator::Not, operand: Box::new(operand) },
+                    span
+                })
             }
-        }
-        Rule::minus => {
-            let operand = parse_expression(parts.next().unwrap(), source)?;
-            ExpressionKind::UnaryOp {
-                op: UnaryOperator::Negate,
-                operand: Box::new(operand),
+            Rule::minus => {
+                let operand = parse_expression(parts.next().unwrap(), source)?;
+                Ok(Expression {
+                    kind: ExpressionKind::UnaryOp { op: UnaryOperator::Negate, operand: Box::new(operand) },
+                    span
+                })
             }
+            _ => parse_expression(first, source)
         }
-        _ => return parse_expression(first, source)
-    };
-    
-    Ok(Expression { kind, span })
+    } else {
+        Err(ParseError { message: "Empty unary".to_string(), span: Some(span) })
+    }
 }
 
 fn parse_postfix_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<Expression, ParseError> {
