@@ -229,13 +229,12 @@ fn parse_function_def(pair: pest::iterators::Pair<Rule>, source: &str) -> Result
         }
         parts.next(); //  ')'
         parts.next(); //  ':'
-    } else if let Rule::right_paren = next.as_rule() {
+    } else if Rule::right_paren == next.as_rule() {
         parts.next(); //  ':'
     } else {
         parts.next(); //  ':'
     }
     
-    //  return type
     let return_type = parse_type(parts.next().unwrap())?;
     
     //  body

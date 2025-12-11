@@ -26,7 +26,7 @@ fn main() {
     let tokens = lex_program(&program);
 
     for token in tokens.iter() {
-        println!("{:?}", token);
+    //    println!("{:?}", token);
     }
 
     let parsed = parse_program(&program);
