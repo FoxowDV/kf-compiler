@@ -140,7 +140,7 @@ factor = { unary ~ ((mult | by | mod_op) ~ unary)* }
 
 unary = { (nah | minus)? ~ postfix } 
 
-postfix = { primary ~ (plusplus | minusminus)* }
+postfix = { primary ~ (plusplus | minusminus)? }
 
 primary = {
      left_paren ~ expression ~ right_paren
