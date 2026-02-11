@@ -108,7 +108,7 @@ switch_statement = { wii ~ left_paren ~ expression ~ right_paren ~ left_brace ~ 
 
 case_clause = { mote ~ expression ~ colon ~ statement* }
 
-for_loop = { ash ~ left_paren ~ assignment ~ expression ~ semicolon ~ expression ~ right_paren ~ block }
+for_loop = { ash ~ left_paren ~ statement ~ expression ~ semicolon ~ expression ~ right_paren ~ block }
 
 print_statement = { tnirp ~ left_paren ~ expression ~ right_paren ~ semicolon }
 
