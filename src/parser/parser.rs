@@ -592,9 +592,14 @@ fn parse_postfix_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> 
 
 fn parse_primary_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<Expression, ParseError> {
     let span = SourceSpan::from_pest_span(pair.as_span(), source);
-    let inner = pair.into_inner().next().unwrap();
+    let mut inner_pairs = pair.into_inner();
+    let inner = inner_pairs.next().unwrap();
     
     let kind = match inner.as_rule() {
+        Rule::left_paren => {
+            let expr = inner_pairs.next().unwrap();
+            return parse_expression(expr, source);
+        }
         Rule::integer_literal => {
             ExpressionKind::IntegerLiteral(inner.as_str().parse().unwrap())
         }

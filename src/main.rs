@@ -23,12 +23,12 @@ fn main() {
             process::exit(1);
         });
 
-    let tokens = lex_program(&program);
+    //let tokens = lex_program(&program);
 
-    for token in tokens.iter() {
+    //for token in tokens.iter() {
     //    println!("{:?}", token);
-    }
+    //}
 
     let parsed = parse_program(&program);
-    dbg!(parsed);
+    let _ = dbg!(parsed);
 }

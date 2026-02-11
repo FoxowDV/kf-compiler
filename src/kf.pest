@@ -138,12 +138,13 @@ term = { factor ~ ((plus | minus | join) ~ factor)* }
 
 factor = { unary ~ ((mult | by | mod_op) ~ unary)* }
 
-unary = { (nah | minus)? ~ (primary | left_paren ~ expression ~ right_paren) } 
+unary = { (nah | minus)? ~ postfix } 
 
 postfix = { primary ~ (plusplus | minusminus)* }
 
 primary = {
-    float_literal
+     left_paren ~ expression ~ right_paren
+    | float_literal
     | integer_literal
     | char_literal
     | string_literal
@@ -152,7 +153,6 @@ primary = {
     | array_access
     | function_call 
     | identifier
-    | left_paren ~ expression ~ right_paren
 }
 
 
