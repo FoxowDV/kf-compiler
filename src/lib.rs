@@ -6,4 +6,4 @@ pub use lexing::token::{Token, TokenWithPosition, Position};
 
 pub use parser::parser::KFParser;
 pub use parser::parser::{parse_program};
-pub use parser::symbol_analyzer::{extract_symbols};
+pub use parser::symbol_analyzer::{extract_symbols, SymbolType};
