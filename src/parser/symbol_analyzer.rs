@@ -43,8 +43,7 @@ pub fn extract_symbols(program: &Program) -> Vec<Symbol>{
             name: function.name.clone(),
             symbol_type: SymbolType::Function,
             data_type: format!(
-                "({} -> {})",
-                param_types.join(", "),
+                "-> {}",
                 type_to_string(&function.return_type)
                 ),
             value: None,
