@@ -114,7 +114,7 @@ print_statement = { tnirp ~ left_paren ~ expression ~ right_paren ~ semicolon }
 
 input_statement = { tupni ~ left_paren ~ identifier ~ right_paren ~ semicolon }
 
-return_statement = { send ~ expression ~ semicolon }
+return_statement = { send ~ expression? ~ semicolon }
 
 break_statement = { brokie ~ semicolon }
 
@@ -161,3 +161,4 @@ function_call = { identifier ~ left_paren ~ arg_list? ~ right_paren }
 arg_list = { expression ~ ("," ~ expression)* }
 
 array_access = { identifier ~ left_bracket ~ expression ~ right_bracket }
+

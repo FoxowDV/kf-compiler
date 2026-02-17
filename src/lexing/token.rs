@@ -188,7 +188,7 @@ impl Token {
             "IntegerLiteral" => r"\b\d+\b",
             "FloatLiteral" => r"\b\d+\.\d+\b",
             "CharLiteral" => r"'.'",
-            "StringLiteral" => r#"\".*\""#,
+            "StringLiteral" => r#"\"[^\"]*\""#,
 
             "Semicolon" => r";",
             "LeftParen" => r"\(",

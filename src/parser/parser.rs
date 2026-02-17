@@ -214,7 +214,11 @@ fn parse_function_def(pair: pest::iterators::Pair<Rule>, source: &str) -> Result
     let mut parts = pair.into_inner();
 
     parts.next(); // ult
-    let name = parts.next().unwrap().as_str().to_string();
+    let name = parts.next()
+        .ok_or_else(|| ParseError {message: "Expected identifier".to_string(), span: Some(span.clone()) })?
+        .as_str()
+        .to_string();
+
     parts.next(); // (
     
     // parameters

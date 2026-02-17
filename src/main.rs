@@ -1,8 +1,9 @@
 mod lexing;
 mod parser;
 
-use lexing::lexer::lex_program;
+//use lexing::lexer::lex_program;
 use parser::parser::parse_program;
+use parser::symbol_analyzer::extract_symbols;
 use std::env;
 use std::fs;
 use std::process;
@@ -29,6 +30,15 @@ fn main() {
     //    println!("{:?}", token);
     //}
 
-    let parsed = parse_program(&program);
-    let _ = dbg!(parsed);
+    let parsed = match parse_program(&program) {
+        Ok(p) => p,
+        Err(e) => {
+            let _ = dbg!(&e);
+            return;
+        }
+    };
+    let _ = dbg!(&parsed);
+    let symbol_table = extract_symbols(&parsed);
+    let _ = dbg!(&symbol_table);
+
 }
