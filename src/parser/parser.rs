@@ -213,13 +213,13 @@ fn parse_function_def(pair: pest::iterators::Pair<Rule>, source: &str) -> Result
     let span = SourceSpan::from_pest_span(pair.as_span(), source);
     let mut parts = pair.into_inner();
 
-    parts.next(); // ult
+    expect_rule(&mut parts, Rule::utl)?;
     let name = parts.next()
         .ok_or_else(|| ParseError {message: "Expected identifier".to_string(), span: Some(span.clone()) })?
         .as_str()
         .to_string();
 
-    parts.next(); // (
+    expect_rule(&mut parts, Rule::left_paren)?;
     
     // parameters
     let mut params = Vec::new();
@@ -231,10 +231,10 @@ fn parse_function_def(pair: pest::iterators::Pair<Rule>, source: &str) -> Result
                 params.push(parse_parameter(param_pair, source)?);
             }
         }
-        parts.next(); //  ')'
-        parts.next(); //  ':'
+        expect_rule(&mut parts, Rule::right_paren)?;
+        expect_rule(&mut parts, Rule::colon)?;
     } else if let Rule::right_paren = next.as_rule() {
-        parts.next(); //  ':'
+        expect_rule(&mut parts, Rule::colon)?;
     } else {
     }
     
@@ -258,7 +258,7 @@ fn parse_parameter(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<Pa
     let mut parts = pair.into_inner();
     
     let name = parts.next().unwrap().as_str().to_string();
-    parts.next(); // Skip ':'
+    expect_rule(&mut parts, Rule::colon)?;
     let param_type = parse_type(parts.next().unwrap())?;
     
     Ok(Parameter {
@@ -289,9 +289,9 @@ fn parse_case_clause(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<
     let span = SourceSpan::from_pest_span(pair.as_span(), source);
     let mut parts = pair.into_inner();
     
-    parts.next(); // Skip 'mote'
+    expect_rule(&mut parts, Rule::mote)?;
     let value = parse_expression(parts.next().unwrap(), source)?;
-    parts.next(); // Skip ':'
+    expect_rule(&mut parts, Rule::colon)?;
     
     let mut body = Vec::new();
     for stmt_pair in parts {
@@ -308,22 +308,22 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
     let kind = match inner.as_rule() {
         Rule::const_declaration => {
             let mut parts = inner.into_inner();
-            parts.next(); // Skip 'kf'
+            expect_rule(&mut parts, Rule::kf)?;
             let name = parts.next().unwrap().as_str().to_string();
-            parts.next(); // Skip ':'
+            expect_rule(&mut parts, Rule::colon)?;
             let var_type = parse_type(parts.next().unwrap())?;
-            parts.next(); // Skip 'is'
+            expect_rule(&mut parts, Rule::is)?;
             let value = parse_expression(parts.next().unwrap(), source)?;
             StatementKind::ConstDeclaration { name, var_type, value }
         }
         
         Rule::variable_declaration => {
             let mut parts = inner.into_inner();
-            parts.next(); // Skip 'dec'
+            expect_rule(&mut parts, Rule::dec)?;
             let name = parts.next().unwrap().as_str().to_string();
-            parts.next(); // Skip ':'
+            expect_rule(&mut parts, Rule::colon)?;
             let var_type = parse_type(parts.next().unwrap())?;
-            parts.next(); // Skip 'is'
+            expect_rule(&mut parts, Rule::is)?;
             let value = parse_expression(parts.next().unwrap(), source)?;
             StatementKind::VariableDeclaration { name, var_type, value }
         }
@@ -331,7 +331,7 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
         Rule::assignment => {
             let mut parts = inner.into_inner();
             let name = parts.next().unwrap().as_str().to_string();
-            parts.next(); // Skip 'is'
+            expect_rule(&mut parts, Rule::is)?;
             let value = parse_expression(parts.next().unwrap(), source)?;
             StatementKind::Assignment { name, value }
         }
@@ -344,10 +344,10 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
         
         Rule::if_statement => {
             let mut parts = inner.into_inner();
-            parts.next(); //  'off'
-            parts.next(); //  '('
+            expect_rule(&mut parts, Rule::off)?;
+            expect_rule(&mut parts, Rule::left_paren)?;
             let condition = parse_expression(parts.next().unwrap(), source)?;
-            parts.next(); //  ')'
+            expect_rule(&mut parts, Rule::right_paren)?;
             let then_block = parse_block(parts.next().unwrap(), source)?;
 
             let mut elif_blocks = Vec::new();
@@ -358,10 +358,10 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
                     Rule::onoff_statement => {
                         let mut elif_parts = current_part.into_inner();
 
-                        elif_parts.next(); // onoff
-                        elif_parts.next(); // (
+                        expect_rule(&mut elif_parts, Rule::onoff)?;
+                        expect_rule(&mut elif_parts, Rule::left_paren)?;
                         let elif_condition = parse_expression(elif_parts.next().unwrap(), source)?;
-                        elif_parts.next(); // )
+                        expect_rule(&mut elif_parts, Rule::right_paren)?;
                         let elif_body = parse_block(elif_parts.next().unwrap(), source)?;
 
                         elif_blocks.push((elif_condition, elif_body))
@@ -387,11 +387,11 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
         
         Rule::switch_statement => {
             let mut parts = inner.into_inner();
-            parts.next(); // Skip 'wii'
-            parts.next(); // Skip '('
+            expect_rule(&mut parts, Rule::wii)?;
+            expect_rule(&mut parts, Rule::left_paren)?;
             let value = parse_expression(parts.next().unwrap(), source)?;
-            parts.next(); // Skip ')'
-            parts.next(); // Skip '{'
+            expect_rule(&mut parts, Rule::right_paren)?;
+            expect_rule(&mut parts, Rule::left_brace)?;
             
             let mut cases = Vec::new();
             for case_pair in parts {
@@ -405,36 +405,36 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
         
         Rule::for_loop => {
             let mut parts = inner.into_inner();
-            parts.next(); // Skip 'ash'
-            parts.next(); // Skip '('
+            expect_rule(&mut parts, Rule::ash)?;
+            expect_rule(&mut parts, Rule::left_paren)?;
             let init = Box::new(parse_statement(parts.next().unwrap(), source)?);
             let condition = parse_expression(parts.next().unwrap(), source)?;
-            parts.next(); // Skip ';'
+            expect_rule(&mut parts, Rule::semicolon)?;
             let update = parse_expression(parts.next().unwrap(), source)?;
-            parts.next(); // Skip ')'
+            expect_rule(&mut parts, Rule::left_paren)?;
             let body = parse_block(parts.next().unwrap(), source)?;
             StatementKind::For { init, condition, update, body }
         }
         
         Rule::print_statement => {
             let mut parts = inner.into_inner();
-            parts.next(); //  'tnirp'
-            parts.next(); //  '('
+            expect_rule(&mut parts, Rule::tnirp)?;
+            expect_rule(&mut parts, Rule::left_paren)?;
             let value = parse_expression(parts.next().unwrap(), source)?;
             StatementKind::Print { value }
         }
         
         Rule::input_statement => {
             let mut parts = inner.into_inner();
-            parts.next(); //  'tupni'
-            parts.next(); //  '('
+            expect_rule(&mut parts, Rule::tupni)?;
+            expect_rule(&mut parts, Rule::left_paren)?;
             let var_name = parts.next().unwrap().as_str().to_string();
             StatementKind::Input { var_name }
         }
         
         Rule::return_statement => {
             let mut parts = inner.into_inner();
-            parts.next(); // Skip 'send'
+            expect_rule(&mut parts, Rule::send)?;
             let value = if let Some(expr_pair) = parts.next() {
                 Some(parse_expression(expr_pair, source)?)
             } else {
@@ -627,7 +627,7 @@ fn parse_primary_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> 
         Rule::array_access => {
             let mut parts = inner.into_inner();
             let array = parts.next().unwrap().as_str().to_string();
-            parts.next(); // Skip '['
+            expect_rule(&mut parts, Rule::left_bracket)?;
             let index = parse_expression(parts.next().unwrap(), source)?;
             ExpressionKind::ArrayAccess {
                 array,
@@ -650,7 +650,7 @@ fn parse_primary_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> 
 fn parse_function_call_inner(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<(String, Vec<Expression>), ParseError> {
     let mut parts = pair.into_inner();
     let name = parts.next().unwrap().as_str().to_string();
-    parts.next(); // Skip '('
+    expect_rule(&mut parts, Rule::left_paren)?;
     
     let mut args = Vec::new();
     if let Some(next) = parts.next() {
@@ -659,7 +659,7 @@ fn parse_function_call_inner(pair: pest::iterators::Pair<Rule>, source: &str) ->
                 for arg in next.into_inner() {
                     args.push(parse_expression(arg, source)?);
                 }
-                parts.next(); // )
+                expect_rule(&mut parts, Rule::right_paren)?;
             },
             Rule::right_paren => {
                 //
@@ -716,5 +716,22 @@ impl SourceSpan {
         }
         
         true
+    }
+}
+
+fn expect_rule<'a>(
+    parts: &mut pest::iterators::Pairs<'a, Rule>,
+    expected: Rule,
+) -> Result<pest::iterators::Pair<'a, Rule>, ParseError> {
+    match parts.next() {
+        Some(pair) if pair.as_rule() == expected => Ok(pair),
+        Some(pair) => Err(ParseError {
+            message: format!("Expected {:?}, found {:?}", expected, pair.as_rule()),
+            span: Some(SourceSpan::from_pest_span(pair.as_span(), "")),
+        }),
+        None => Err(ParseError {
+            message: format!("Expected {:?}, found end of input", expected),
+            span: None,
+        }),
     }
 }

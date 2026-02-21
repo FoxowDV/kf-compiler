@@ -112,7 +112,7 @@ pub fn calculate_position(input: &str, byte_offset: usize) -> Position {
     let mut line = 1;
     let mut col = 1;
 
-    for (i, ch) in input.chars().enumerate() {
+    for (i, ch) in input.char_indices() {
         if i >= byte_offset {
             break;
         }

@@ -38,7 +38,7 @@ fn main() {
         }
     };
     let _ = dbg!(&parsed);
-    let symbol_table = extract_symbols(&parsed);
-    let _ = dbg!(&symbol_table);
+    //let symbol_table = extract_symbols(&parsed);
+    //let _ = dbg!(&symbol_table);
 
 }
