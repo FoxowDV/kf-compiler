@@ -12,7 +12,7 @@ pub struct TokenWithPosition {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Token{
     // Keywords
     Utl, 
