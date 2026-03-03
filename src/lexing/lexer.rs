@@ -42,6 +42,7 @@ pub fn lex_program(program: &str) -> Vec<TokenWithPosition> {
         "Minus",
         "By",
         "Mod",
+        "Expo",
         "And",
         "Or",
         "Nah",

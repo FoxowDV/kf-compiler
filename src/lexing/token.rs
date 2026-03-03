@@ -57,6 +57,7 @@ pub enum Token{
     Minusminus,
     By,
     Mod,
+    Expo,
 
     // Logical Operators
     And,
@@ -123,6 +124,8 @@ impl Token {
             "Minusminus" => Token::Minusminus,
             "By" => Token::By,
             "Mod" => Token::Mod,
+            "Expo" => Token::Expo,
+
             "And" => Token::And,
             "Or" => Token::Or,
             "Nah" => Token::Nah,
@@ -178,6 +181,8 @@ impl Token {
             "Minusminus" => r"\bminusminus\b",
             "By" => r"\bby\b",
             "Mod" => r"\bmod\b",
+            "Expo" => r"\bexpo\b",
+
             "And" => r"\band\b",
             "Or" => r"\bor\b",
             "Nah" => r"\bnah\b",
@@ -241,6 +246,7 @@ impl Token {
             Token::Minusminus => "Minusminus",
             Token::By => "By",
             Token::Mod => "Mod",
+            Token::Expo => "Expo",
             Token::And => "And",
             Token::Or => "Or",
             Token::Nah => "Nah",
@@ -292,6 +298,7 @@ impl Token {
             Token::Minusminus => "minusminus".into(),
             Token::By => "by".into(),
             Token::Mod => "mod".into(),
+            Token::Expo => "expo".into(),
             Token::And => "and".into(),
             Token::Or => "or".into(),
             Token::Nah => "nah".into(),
