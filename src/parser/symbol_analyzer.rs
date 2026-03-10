@@ -37,6 +37,64 @@ pub struct SemanticError {
     pub span: Option<SourceSpan>,
 }
 
+
+// Infer type
+fn infer_type(expr: &Expression, symbols: &[Symbol], scope: &str) -> Option<String> {
+    match &expr.kind {
+        ExpressionKind::IntegerLiteral(_) => Some("ont".to_string()),
+        ExpressionKind::FloatLiteral(_) => Some("michi".to_string()),
+        ExpressionKind::CharLiteral(_) => Some("chip".to_string()),
+        ExpressionKind::StringLiteral(_) => Some("ntr".to_string()),
+        ExpressionKind::BoolLiteral(_) => Some("yesorno".to_string()),
+        ExpressionKind::Identifier(id) => {
+            symbols.iter()
+                .find(|s| s.name == *id && (s.scope == scope || s.scope == "global"))
+                .map(|s| s.data_type.clone())
+        },
+        ExpressionKind::UnaryOp{ op, operand } => {
+            match op {
+                UnaryOperator::Negate => infer_type(operand, symbols, scope),
+                UnaryOperator::Not => Some("yesorno".to_string()),
+            }
+        },
+        ExpressionKind::FunctionCall{ name, .. } => {
+            symbols.iter()
+                .find(|s| s.name == *name && matches!(s.symbol_type, SymbolType::Function))
+                .and_then(|s| s.data_type.strip_prefix("-> ").map(|t| t.to_string()))
+        },
+        _ => None,
+    }
+}
+
+fn check_type_mismatch(
+    var_name: &str,
+    declared: &Type,
+    value: &Expression,
+    symbols: &[Symbol],
+    scope: &str,
+    span: &SourceSpan,
+) -> Result<(), SemanticError> {
+    let declared_str = type_to_string(declared);
+    if let Some(inferred) = infer_type(value, symbols, scope) {
+        let compatible = declared_str == inferred
+            || (declared_str == "ont" && inferred == "uont")
+            || (declared_str == "uont" && inferred == "ont")
+            || (declared_str == "michi" && (inferred == "ont" || inferred == "uont"));
+
+        if !compatible {
+            return Err(SemanticError { 
+                message: format!(
+                     "'{}' es de tipo '{}' pero se le asigna valor de tipo '{}'",
+                     var_name, declared_str, inferred
+                     ),
+                span: Some(span.clone())
+            });
+        }
+    }
+
+    Ok(())
+}
+
 // Check dup
 fn check_duplicate(symbols: &[Symbol], name: &str, scope: &str, span: &SourceSpan) -> Result<(), SemanticError> {
     if let Some(existing) = symbols.iter().find(|s| s.name == name && s.scope == scope) {
@@ -46,7 +104,6 @@ fn check_duplicate(symbols: &[Symbol], name: &str, scope: &str, span: &SourceSpa
                          name, scope, existing.line, existing.col
                      ),
             span: Some(span.clone())}
-
         )
     }
     Ok(())
@@ -106,6 +163,7 @@ fn extract_symbols_from_statements(
             match &stmt.kind {
                 StatementKind::VariableDeclaration { name, var_type, value } => {
                     check_duplicate(symbols, name, scope, &stmt.span)?;
+                    check_type_mismatch(name, var_type, value, symbols, scope, &stmt.span)?;
 
                     symbols.push(Symbol {
                         name: name.clone(),
@@ -120,6 +178,7 @@ fn extract_symbols_from_statements(
                 
                 StatementKind::ConstDeclaration { name, var_type, value } => {
                     check_duplicate(symbols, name, scope, &stmt.span)?;
+                    check_type_mismatch(name, var_type, value, symbols, scope, &stmt.span)?;
                     symbols.push(Symbol {
                         name: name.clone(),
                         symbol_type: SymbolType::Constant,
@@ -150,7 +209,8 @@ fn extract_symbols_from_statements(
                 StatementKind::For { init, body, .. } => {
                     // Extraer la variable del init del for
                     if let StatementKind::VariableDeclaration { name, var_type, value } = &init.kind {
-                        check_duplicate(symbols, name, scope, &stmt.span)?;
+                        check_duplicate(symbols, name, scope, &init.span)?;
+                        check_type_mismatch(name, var_type, value, symbols, scope, &init.span)?;
                         symbols.push(Symbol {
                             name: name.clone(),
                             symbol_type: SymbolType::Variable,
