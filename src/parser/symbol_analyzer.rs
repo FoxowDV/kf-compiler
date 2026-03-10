@@ -1,14 +1,14 @@
 use crate::parser::parser::{
+    BinaryOperator, 
+    Expression, 
+    ExpressionKind, 
+    PostfixOperator, 
     Program, 
+    SourceSpan, 
     Statement, 
     StatementKind, 
     Type, 
-    ExpressionKind, 
-    PostfixOperator,
-    UnaryOperator,
-    BinaryOperator,
-    Expression
-
+    UnaryOperator
 };
 
 
@@ -31,14 +31,39 @@ pub enum SymbolType {
     Parameter,
 }
 
-pub fn extract_symbols(program: &Program) -> Vec<Symbol>{
+#[derive(Debug, Clone)]
+pub struct SemanticError {
+    pub message: String,
+    pub span: Option<SourceSpan>,
+}
+
+// Check dup
+fn check_duplicate(symbols: &[Symbol], name: &str, scope: &str, span: &SourceSpan) -> Result<(), SemanticError> {
+    if let Some(existing) = symbols.iter().find(|s| s.name == name && s.scope == scope) {
+        return Err(SemanticError { 
+            message: format!(
+                         "'{}' ya fue declarado en el scope '{}' (linea {}, columna {})",
+                         name, scope, existing.line, existing.col
+                     ),
+            span: Some(span.clone())}
+
+        )
+    }
+    Ok(())
+}
+
+pub fn extract_symbols(program: &Program) -> Result<Vec<Symbol>, SemanticError>{
     let mut symbols = Vec::new();
 
     for function in &program.functions {
+        // Check duplicate function
+        check_duplicate(&symbols, &function.name, "global", &function.span)?;
+
         let param_types: Vec<String> = function.params
             .iter()
             .map(|p| type_to_string(&p.param_type))
             .collect();
+
         symbols.push(Symbol {
             name: function.name.clone(),
             symbol_type: SymbolType::Function,
@@ -53,6 +78,8 @@ pub fn extract_symbols(program: &Program) -> Vec<Symbol>{
         });
 
         for param in &function.params {
+            // Check duplicate param name 
+            check_duplicate(&symbols, &param.name, &function.name, &param.span)?;
             symbols.push(Symbol {
                 name: param.name.clone(),
                 symbol_type: SymbolType::Parameter,
@@ -64,75 +91,84 @@ pub fn extract_symbols(program: &Program) -> Vec<Symbol>{
             });
         }
 
-        extract_symbols_from_statements(&function.body, &function.name, &mut symbols);
+        extract_symbols_from_statements(&function.body, &function.name, &mut symbols)?;
     }
-    symbols
+    Ok(symbols)
 }
 
 
-fn extract_symbols_from_statements(statements: &[Statement], scope: &str, symbols: &mut Vec<Symbol>) {
-    for stmt in statements {
-        match &stmt.kind {
-            StatementKind::VariableDeclaration { name, var_type, value } => {
-                symbols.push(Symbol {
-                    name: name.clone(),
-                    symbol_type: SymbolType::Variable,
-                    data_type: type_to_string(var_type),
-                    value: Some(expression_to_string(value)),
-                    scope: scope.to_string(),
-                    line: stmt.span.start.line,
-                    col: stmt.span.start.col,
-                });
-            }
-            
-            StatementKind::ConstDeclaration { name, var_type, value } => {
-                symbols.push(Symbol {
-                    name: name.clone(),
-                    symbol_type: SymbolType::Constant,
-                    data_type: type_to_string(var_type),  
-                    value: Some(expression_to_string(value)),  
-                    scope: scope.to_string(),  
-                    line: stmt.span.start.line,  
-                    col: stmt.span.start.col,  
-                });
-            }
-            
-            StatementKind::If { then_block, elif_blocks, else_block, .. } => {
-                extract_symbols_from_statements(then_block, scope, symbols);
-                for (_, block) in elif_blocks {
-                    extract_symbols_from_statements(block, scope, symbols);
-                }
-                if let Some(else_stmts) = else_block {
-                    extract_symbols_from_statements(else_stmts, scope, symbols);
-                }
-            }
-            
-            StatementKind::Switch { cases, .. } => {
-                for case in cases {
-                    extract_symbols_from_statements(&case.body, scope, symbols);
-                }
-            }
+fn extract_symbols_from_statements(
+    statements: &[Statement], 
+    scope: &str, 
+    symbols: &mut Vec<Symbol>
+    ) -> Result<(), SemanticError> {
+        for stmt in statements {
+            match &stmt.kind {
+                StatementKind::VariableDeclaration { name, var_type, value } => {
+                    check_duplicate(symbols, name, scope, &stmt.span)?;
 
-            StatementKind::For { init, body, .. } => {
-                // Extraer la variable del init del for
-                if let StatementKind::VariableDeclaration { name, var_type, value } = &init.kind {
                     symbols.push(Symbol {
                         name: name.clone(),
                         symbol_type: SymbolType::Variable,
                         data_type: type_to_string(var_type),
                         value: Some(expression_to_string(value)),
                         scope: scope.to_string(),
-                        line: init.span.start.line,
-                        col: init.span.start.col,
+                        line: stmt.span.start.line,
+                        col: stmt.span.start.col,
                     });
                 }
- 
-                extract_symbols_from_statements(body, scope, symbols);
+                
+                StatementKind::ConstDeclaration { name, var_type, value } => {
+                    check_duplicate(symbols, name, scope, &stmt.span)?;
+                    symbols.push(Symbol {
+                        name: name.clone(),
+                        symbol_type: SymbolType::Constant,
+                        data_type: type_to_string(var_type),  
+                        value: Some(expression_to_string(value)),  
+                        scope: scope.to_string(),  
+                        line: stmt.span.start.line,  
+                        col: stmt.span.start.col,  
+                    });
+                }
+                
+                StatementKind::If { then_block, elif_blocks, else_block, .. } => {
+                    extract_symbols_from_statements(then_block, scope, symbols)?;
+                    for (_, block) in elif_blocks {
+                        extract_symbols_from_statements(block, scope, symbols)?;
+                    }
+                    if let Some(else_stmts) = else_block {
+                        extract_symbols_from_statements(else_stmts, scope, symbols)?;
+                    }
+                }
+                
+                StatementKind::Switch { cases, .. } => {
+                    for case in cases {
+                        extract_symbols_from_statements(&case.body, scope, symbols)?;
+                    }
+                }
+
+                StatementKind::For { init, body, .. } => {
+                    // Extraer la variable del init del for
+                    if let StatementKind::VariableDeclaration { name, var_type, value } = &init.kind {
+                        check_duplicate(symbols, name, scope, &stmt.span)?;
+                        symbols.push(Symbol {
+                            name: name.clone(),
+                            symbol_type: SymbolType::Variable,
+                            data_type: type_to_string(var_type),
+                            value: Some(expression_to_string(value)),
+                            scope: scope.to_string(),
+                            line: init.span.start.line,
+                            col: init.span.start.col,
+                        });
+                    }
+     
+                    extract_symbols_from_statements(body, scope, symbols)?;
+                }
+                
+                _ => {}
             }
-            
-            _ => {}
         }
-    }
+        Ok(())
 }
 
 

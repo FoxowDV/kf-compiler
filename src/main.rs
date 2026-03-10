@@ -1,5 +1,6 @@
 mod lexing;
 mod parser;
+mod semantic;
 
 //use lexing::lexer::lex_program;
 use parser::parser::parse_program;
@@ -37,8 +38,8 @@ fn main() {
             return;
         }
     };
-    let _ = dbg!(&parsed);
-    //let symbol_table = extract_symbols(&parsed);
-    //let _ = dbg!(&symbol_table);
+    //let _ = dbg!(&parsed);
+    let symbol_table = extract_symbols(&parsed);
+    let _ = dbg!(&symbol_table);
 
 }
