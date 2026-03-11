@@ -37,6 +37,7 @@ pub struct SemanticError {
     pub span: Option<SourceSpan>,
 }
 
+const BUILTIN_FUNCTIONS: &[&str] = &["tupni", "tnirp"];
 
 // Infer type
 fn infer_type(expr: &Expression, symbols: &[Symbol], scope: &str) -> Option<String> {
@@ -66,6 +67,13 @@ fn infer_type(expr: &Expression, symbols: &[Symbol], scope: &str) -> Option<Stri
     }
 }
 
+fn types_compatible(declared: &str, inferred: &str) -> bool {
+    declared == inferred
+        || (declared == "ont" && inferred == "uont")
+        || (declared == "uont" && inferred == "ont")
+        || (declared == "michi" && (inferred == "ont" || inferred == "uont"))
+}
+
 fn check_type_mismatch(
     var_name: &str,
     declared: &Type,
@@ -76,22 +84,13 @@ fn check_type_mismatch(
 ) -> Result<(), SemanticError> {
     let declared_str = type_to_string(declared);
     if let Some(inferred) = infer_type(value, symbols, scope) {
-        let compatible = declared_str == inferred
-            || (declared_str == "ont" && inferred == "uont")
-            || (declared_str == "uont" && inferred == "ont")
-            || (declared_str == "michi" && (inferred == "ont" || inferred == "uont"));
-
-        if !compatible {
+        if !types_compatible(&declared_str, &inferred) {
             return Err(SemanticError { 
-                message: format!(
-                     "'{}' es de tipo '{}' pero se le asigna valor de tipo '{}'",
-                     var_name, declared_str, inferred
-                     ),
+                message: format!( "'{}' is of type '{}' but type '{}' was assigned", var_name, declared_str, inferred),
                 span: Some(span.clone())
             });
         }
     }
-
     Ok(())
 }
 
@@ -99,12 +98,63 @@ fn check_type_mismatch(
 fn check_duplicate(symbols: &[Symbol], name: &str, scope: &str, span: &SourceSpan) -> Result<(), SemanticError> {
     if let Some(existing) = symbols.iter().find(|s| s.name == name && s.scope == scope) {
         return Err(SemanticError { 
-            message: format!(
-                         "'{}' ya fue declarado en el scope '{}' (linea {}, columna {})",
-                         name, scope, existing.line, existing.col
-                     ),
+            message: format!("'{}' is already declared on the scope '{}' (line {}, col {})", name, scope, existing.line, existing.col),
             span: Some(span.clone())}
         )
+    }
+    Ok(())
+}
+
+// Find symbol, in scope first and then global
+fn find_symbol<'a>(symbols: &'a [Symbol], name: &str, scope: &str) -> Option<&'a Symbol> {
+    symbols.iter()
+        .find(|s| s.name == name && s.scope == scope)
+        .or_else(|| symbols.iter().find(|s| s.name == name && s.scope == "global"))
+}
+
+fn check_expression(expr: &Expression, symbols: &[Symbol], scope: &str) -> Result<(), SemanticError> {
+    match &expr.kind {
+        ExpressionKind::Identifier(id) => {
+            if find_symbol(symbols, id, scope).is_none() {
+                return Err(SemanticError { 
+                    message: format!( "'{}' is not declared in the scope '{}'", id, scope),
+                    span: Some(expr.span.clone())
+                });
+            }
+        }
+        ExpressionKind::FunctionCall{ name, args } => {
+            if !BUILTIN_FUNCTIONS.contains(&name.as_str()) {
+                match find_symbol(symbols, name, scope) {
+                    None => {
+                        return Err(SemanticError { 
+                            message: format!( "funcion '{}' is not declared", name),
+                            span: Some(expr.span.clone())
+                        });
+                    }
+                    Some(sym) if !matches!(sym.symbol_type, SymbolType::Function) => {
+                        return Err(SemanticError { 
+                            message: format!( "'{}' is not a function", name),
+                            span: Some(expr.span.clone())
+                        });
+                    }
+                    _ => {}
+                }
+            }
+            for arg in args {
+                check_expression(arg, symbols, scope)?;
+            }
+        }
+        ExpressionKind::BinaryOp { left, right, .. } => {
+            check_expression(left, symbols, scope)?;
+            check_expression(right, symbols, scope)?;
+        }
+        ExpressionKind::UnaryOp { operand , .. } => {
+            check_expression(operand, symbols, scope)?;
+        }
+        ExpressionKind::PostfixOp { operand , .. } => {
+            check_expression(operand, symbols, scope)?;
+        }
+        _ => {}
     }
     Ok(())
 }
@@ -115,11 +165,6 @@ pub fn extract_symbols(program: &Program) -> Result<Vec<Symbol>, SemanticError>{
     for function in &program.functions {
         // Check duplicate function
         check_duplicate(&symbols, &function.name, "global", &function.span)?;
-
-        let param_types: Vec<String> = function.params
-            .iter()
-            .map(|p| type_to_string(&p.param_type))
-            .collect();
 
         symbols.push(Symbol {
             name: function.name.clone(),
@@ -163,6 +208,7 @@ fn extract_symbols_from_statements(
             match &stmt.kind {
                 StatementKind::VariableDeclaration { name, var_type, value } => {
                     check_duplicate(symbols, name, scope, &stmt.span)?;
+                    check_expression(value, symbols, scope)?;
                     check_type_mismatch(name, var_type, value, symbols, scope, &stmt.span)?;
 
                     symbols.push(Symbol {
@@ -178,6 +224,7 @@ fn extract_symbols_from_statements(
                 
                 StatementKind::ConstDeclaration { name, var_type, value } => {
                     check_duplicate(symbols, name, scope, &stmt.span)?;
+                    check_expression(value, symbols, scope)?;
                     check_type_mismatch(name, var_type, value, symbols, scope, &stmt.span)?;
                     symbols.push(Symbol {
                         name: name.clone(),
@@ -189,10 +236,127 @@ fn extract_symbols_from_statements(
                         col: stmt.span.start.col,  
                     });
                 }
+                StatementKind::Assignment { name, value } => {
+                    // check variable declared
+                    let sym = find_symbol(symbols, name, scope)
+                        .ok_or_else(|| SemanticError {
+                            message: format!( "'{}' is not declared in the scope '{}'", name, scope),
+                            span: Some(stmt.span.clone())
+                        })?;
+                    // check constant assignment
+                    if matches!(sym.symbol_type, SymbolType::Constant) {
+                        return Err(SemanticError { 
+                            message: format!( "'{}' is a constant", name),
+                            span: Some(stmt.span.clone())
+                        });
+                    }
+                    // check function assignment
+                    if matches!(sym.symbol_type, SymbolType::Function) {
+                        return Err(SemanticError { 
+                            message: format!( "'{}' is a function", name),
+                            span: Some(stmt.span.clone())
+                        });
+                    }
+
+                    check_expression(value, symbols, scope)?;
+
+                    // check type of assignment
+                    let declared_type = sym.data_type.clone();
+                    if let Some(inferred) = infer_type(value, symbols, scope) {
+                        if !types_compatible(&declared_type, &inferred) {
+                            return Err(SemanticError { 
+                                message: format!( "'{}' is of type '{}' but type '{}' was assigned", name, declared_type, inferred),
+                                span: Some(stmt.span.clone())
+                            });
+                        }
+                    }
+
+                }
+                StatementKind::FunctionCall { name, args } => {
+                    if !BUILTIN_FUNCTIONS.contains(&name.as_str()) {
+                        //check declared
+                        let sym = find_symbol(symbols, name, scope)
+                            .ok_or_else(|| SemanticError {
+                                message: format!( "function '{}' is not declared", name),
+                                span: Some(stmt.span.clone())
+                            })?;
+
+                        // check is function
+                        if !matches!(sym.symbol_type, SymbolType::Function) {
+                            return Err(SemanticError { 
+                                message: format!( "'{}' is not a function", name),
+                                span: Some(stmt.span.clone())
+                            });
+                        }
+
+                        let param_count = symbols.iter()
+                            .filter(|s| s.scope == *name && matches!(s.symbol_type, SymbolType::Parameter))
+                            .count();
+
+                        if args.len() != param_count {
+                            return Err(SemanticError { 
+                                message: format!( "'{}' expects '{}' arguments but '{}' were given ", name, param_count, args.len()),
+                                span: Some(stmt.span.clone())
+                            });
+                        }
+                    }
+
+                    for arg in args {
+                        check_expression(arg, symbols, scope)?;
+                    }
+                }
+
+                StatementKind::Input { var_name } => {
+                    let sym = find_symbol(symbols, var_name, scope)
+                        .ok_or_else(|| SemanticError {
+                            message: format!("'{}' was not declared in the scope '{}'", var_name, scope),
+                            span: Some(stmt.span.clone()),
+                        })?;
+
+                    if matches!(sym.symbol_type, SymbolType::Constant) {
+                        return Err(SemanticError {
+                            message: format!("'{}' is a constant and cannot be used with tupni", var_name),
+                            span: Some(stmt.span.clone()),
+                        });
+                    }
+                }
+
+                StatementKind::Print { value } => {
+                    check_expression(value, symbols, scope)?;
+                }
+
+                StatementKind::Return { value } => {
+                    if let Some(expr) = value {
+                        check_expression(expr, symbols, scope)?;
+
+                        // chekc the type from the table
+                        if let Some(func_sym) = symbols.iter().find(|s| s.name == scope && matches!(s.symbol_type, SymbolType::Function)) {
+                            if let Some(ret_str) = func_sym.data_type.strip_prefix("-> ") {
+                                if let Some(inferred) = infer_type(expr, symbols, scope) {
+                                    if !types_compatible(ret_str, &inferred) {
+                                        return Err(SemanticError {
+                                            message: format!(
+                                                "the function '{}' returns '{}' but value of type '{}' was found",
+                                                scope, ret_str, inferred
+                                            ),
+                                            span: Some(stmt.span.clone()),
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                StatementKind::Expression { expr } => { 
+                    check_expression(expr, symbols, scope)?;
+                }
                 
-                StatementKind::If { then_block, elif_blocks, else_block, .. } => {
+                StatementKind::If { condition, then_block, elif_blocks, else_block } => {
+                    check_expression(condition, symbols, scope)?;
                     extract_symbols_from_statements(then_block, scope, symbols)?;
-                    for (_, block) in elif_blocks {
+                    for (elif_cond, block) in elif_blocks {
+                        check_expression(elif_cond, symbols, scope)?;
                         extract_symbols_from_statements(block, scope, symbols)?;
                     }
                     if let Some(else_stmts) = else_block {
@@ -200,17 +364,20 @@ fn extract_symbols_from_statements(
                     }
                 }
                 
-                StatementKind::Switch { cases, .. } => {
+                StatementKind::Switch { value, cases } => {
+                    check_expression(value, symbols, scope)?;
                     for case in cases {
+                        check_expression(&case.value, symbols, scope)?;
                         extract_symbols_from_statements(&case.body, scope, symbols)?;
                     }
                 }
 
-                StatementKind::For { init, body, .. } => {
-                    // Extraer la variable del init del for
+                StatementKind::For { init, condition, update, body } => {
                     if let StatementKind::VariableDeclaration { name, var_type, value } = &init.kind {
                         check_duplicate(symbols, name, scope, &init.span)?;
+                        check_expression(value, symbols, scope)?;
                         check_type_mismatch(name, var_type, value, symbols, scope, &init.span)?;
+
                         symbols.push(Symbol {
                             name: name.clone(),
                             symbol_type: SymbolType::Variable,
@@ -221,10 +388,11 @@ fn extract_symbols_from_statements(
                             col: init.span.start.col,
                         });
                     }
-     
+
+                    check_expression(condition, symbols, scope)?;
+                    check_expression(update, symbols, scope)?;
                     extract_symbols_from_statements(body, scope, symbols)?;
-                }
-                
+                } 
                 _ => {}
             }
         }
