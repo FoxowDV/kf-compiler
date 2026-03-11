@@ -151,7 +151,7 @@ pub enum ExpressionKind {
 pub enum BinaryOperator {
     Add, Subtract, Multiply, Divide, Modulo,
     Equal, NotEqual, GreaterThan, LessThan,
-    And, Or, Join,
+    And, Or, Join, Expo,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -411,7 +411,7 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
             let condition = parse_expression(parts.next().unwrap(), source)?;
             expect_rule(&mut parts, Rule::semicolon)?;
             let update = parse_expression(parts.next().unwrap(), source)?;
-            expect_rule(&mut parts, Rule::left_paren)?;
+            expect_rule(&mut parts, Rule::right_paren)?;
             let body = parse_block(parts.next().unwrap(), source)?;
             StatementKind::For { init, condition, update, body }
         }
@@ -508,6 +508,7 @@ fn parse_binary_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> R
             Rule::plus => BinaryOperator::Add,
             Rule::minus => BinaryOperator::Subtract,
             Rule::mult => BinaryOperator::Multiply,
+            Rule::expo => BinaryOperator::Expo,
             Rule::by => BinaryOperator::Divide,
             Rule::mod_op => BinaryOperator::Modulo,
             Rule::eq => BinaryOperator::Equal,

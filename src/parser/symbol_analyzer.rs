@@ -95,7 +95,7 @@ const RESERVED_KEYWORDS: &[&str] = &[
     // Literals
     "yes", "no",
     // Operators
-    "is", "plus", "plusplus", "mult", "minus", "minusminus",
+    "is", "plus", "plusplus", "mult", "minus", "minusminus", "expo",
     "by", "mod", "join",
     // Logical
     "and", "or", "nah", "great", "lesst", "eq", "noteq",
@@ -154,7 +154,7 @@ fn check_expression(expr: &Expression, symbols: &[Symbol], scope: &str) -> Resul
             if let (Some(lt), Some(rt)) = (&left_type, &right_type) {
                 match op {
                     BinaryOperator::Add | BinaryOperator::Subtract |
-                    BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulo => {
+                    BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulo | BinaryOperator::Expo => {
                         if !is_numeric(lt) || !is_numeric(rt) {
                             return Err(SemanticError {
                                 message: format!( "Arithmetic operation between incompatible types '{}' and '{}'", lt, rt),
@@ -268,7 +268,7 @@ fn infer_type(expr: &Expression, symbols: &[Symbol], scope: &str) -> Option<Stri
             match op {
                 // result is michi if either side is michi, otherwise ont
                 BinaryOperator::Add | BinaryOperator::Subtract | 
-                BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulo => {
+                BinaryOperator::Multiply | BinaryOperator::Divide | BinaryOperator::Modulo | BinaryOperator::Expo => {
                     if left_type == "michi" || right_type == "michi" {
                         Some("michi".to_string())
                     } else {
@@ -332,6 +332,43 @@ fn check_type_mismatch(
     Ok(())
 }
 
+fn has_return_statement(statements: &[Statement]) -> bool {
+    for stmt in statements {
+        match &stmt.kind {
+            StatementKind::Return { .. } => return true,
+            StatementKind::If { then_block, elif_blocks, else_block, .. } => {
+                if has_return_statement(then_block) {
+                    return true;
+                }
+                for (_, block) in elif_blocks {
+                    if has_return_statement(block) {
+                        return true;
+                    }
+                }
+                if let Some(else_stmts) = else_block {
+                    if has_return_statement(else_stmts) {
+                        return true;
+                    }
+                }
+            }
+            StatementKind::For { body, .. } => {
+                if has_return_statement(body) {
+                    return true;
+                }
+            }
+            StatementKind::Switch { cases, .. } => {
+                for case in cases {
+                    if has_return_statement(&case.body) {
+                        return true;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
 
 
 // Check dup
@@ -384,6 +421,12 @@ pub fn extract_symbols(program: &Program) -> Result<Vec<Symbol>, SemanticError>{
         }
 
         extract_symbols_from_statements(&function.body, &function.name, &mut symbols)?;
+        if !has_return_statement(&function.body) {
+            return Err(SemanticError { 
+                message: format!("function '{}' does not have a send statement)", function.name),
+                span: Some(function.span.clone())
+            });
+        }
     }
     Ok(symbols)
 }
@@ -538,9 +581,35 @@ fn extract_symbols_from_statements(
                 
                 StatementKind::If { condition, then_block, elif_blocks, else_block } => {
                     check_expression(condition, symbols, scope)?;
+
+                    if let Some(cond_type) = infer_type(condition, symbols, scope) {
+                        if cond_type != "yesorno" {
+                            return Err(SemanticError {
+                                message: format!(
+                                    "the condition of 'off' must be of type 'yesorno' but the type '{}' was found",
+                                    cond_type
+                                ),
+                                span: Some(condition.span.clone()),
+                            });
+                        }
+                    }
+
                     extract_symbols_from_statements(then_block, scope, symbols)?;
                     for (elif_cond, block) in elif_blocks {
                         check_expression(elif_cond, symbols, scope)?;
+
+                        if let Some(elif_type) = infer_type(elif_cond, symbols, scope) {
+                            if elif_type != "yesorno" {
+                                return Err(SemanticError {
+                                    message: format!(
+                                        "the condition of 'onoff' must be of type 'yesorno' but the type '{}' was found",
+                                        elif_type
+                                    ),
+                                    span: Some(elif_cond.span.clone()),
+                                });
+                            }
+                        }
+
                         extract_symbols_from_statements(block, scope, symbols)?;
                     }
                     if let Some(else_stmts) = else_block {
@@ -550,8 +619,25 @@ fn extract_symbols_from_statements(
                 
                 StatementKind::Switch { value, cases } => {
                     check_expression(value, symbols, scope)?;
+
+                    let switch_type = infer_type(value, symbols, scope);
+
                     for case in cases {
                         check_expression(&case.value, symbols, scope)?;
+
+                        if let (Some(sw_type), Some(case_type)) = (&switch_type, infer_type(&case.value, symbols, scope)) {
+                            if !types_compatible(sw_type, &case_type) {
+                                return Err(SemanticError {
+                                    message: format!(
+                                        "'will' expression is of type '{}' but 'mote' value is of type '{}",
+                                        sw_type, case_type
+                                    ),
+                                    span: Some(case.value.span.clone()),
+                                });
+
+                            }
+                        }
+
                         extract_symbols_from_statements(&case.body, scope, symbols)?;
                     }
                 }
@@ -611,6 +697,7 @@ fn expression_to_string(expr: &Expression) -> String {
                 BinaryOperator::Add => "plus",
                 BinaryOperator::Subtract => "minus",
                 BinaryOperator::Multiply => "mult",
+                BinaryOperator::Expo => "expo",
                 BinaryOperator::Divide => "by",
                 BinaryOperator::Modulo => "mod",
                 BinaryOperator::Equal => "eq",

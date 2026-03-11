@@ -38,6 +38,7 @@ minus = { "minus" }
 minusminus = { "minusminus" }
 by = { "by" }
 mod_op = { "mod" } 
+expo = { "expo" }
 
 // Logical Operators
 and = { "and" } 
@@ -136,7 +137,7 @@ comparison = { term ~ ((great | lesst) ~ term)* }
 
 term = { factor ~ ((plus | minus | join) ~ factor)* }
 
-factor = { unary ~ ((mult | by | mod_op) ~ unary)* }
+factor = { unary ~ ((mult | by | mod_op | expo) ~ unary)* }
 
 unary = { (nah | minus)? ~ postfix } 
 

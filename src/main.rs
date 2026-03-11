@@ -1,6 +1,5 @@
 mod lexing;
 mod parser;
-mod semantic;
 
 //use lexing::lexer::lex_program;
 use parser::parser::parse_program;
