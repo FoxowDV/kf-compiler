@@ -141,10 +141,6 @@ pub enum ExpressionKind {
         op: PostfixOperator, 
         operand: Box<Expression> 
     },
-    ArrayAccess { 
-        array: String, 
-        index: Box<Expression> 
-    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -624,16 +620,6 @@ fn parse_primary_expression(pair: pest::iterators::Pair<Rule>, source: &str) -> 
         Rule::function_call => {
             let (name, args) = parse_function_call_inner(inner, source)?;
             ExpressionKind::FunctionCall { name, args }
-        }
-        Rule::array_access => {
-            let mut parts = inner.into_inner();
-            let array = parts.next().unwrap().as_str().to_string();
-            expect_rule(&mut parts, Rule::left_bracket)?;
-            let index = parse_expression(parts.next().unwrap(), source)?;
-            ExpressionKind::ArrayAccess {
-                array,
-                index: Box::new(index),
-            }
         }
         Rule::identifier => {
             ExpressionKind::Identifier(inner.as_str().to_string())

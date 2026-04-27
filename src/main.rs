@@ -1,6 +1,8 @@
 mod lexing;
 mod parser;
+mod codegen;
 
+use codegen::tac::{TACGenerator, instructions_to_string};
 //use lexing::lexer::lex_program;
 use parser::parser::parse_program;
 use parser::symbol_analyzer::extract_symbols;
@@ -37,8 +39,14 @@ fn main() {
             return;
         }
     };
+
     //let _ = dbg!(&parsed);
-    let symbol_table = extract_symbols(&parsed);
-    let _ = dbg!(&symbol_table);
+    //let symbol_table = extract_symbols(&parsed);
+    //let _ = dbg!(&symbol_table);
+
+    let instructions = TACGenerator::generate(&parsed);
+    let tac_output = instructions_to_string(&instructions);
+
+    println!("{}", tac_output);
 
 }

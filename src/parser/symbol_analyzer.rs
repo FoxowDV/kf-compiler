@@ -727,10 +727,6 @@ fn expression_to_string(expr: &Expression) -> String {
             format!("{}({})", name, args_str)
         }
         
-        ExpressionKind::ArrayAccess { array, index } => {
-            format!("{}[{}]", array, expression_to_string(index))
-        }
-        
         ExpressionKind::PostfixOp { op, operand } => {
             let op_str = match op {
                 PostfixOperator::Increment => "plusplus",

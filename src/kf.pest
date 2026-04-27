@@ -151,7 +151,6 @@ primary = {
     | string_literal
     | yes
     | no
-    | array_access
     | function_call 
     | identifier
 }
@@ -160,6 +159,3 @@ primary = {
 function_call = { identifier ~ left_paren ~ arg_list? ~ right_paren }
 
 arg_list = { expression ~ ("," ~ expression)* }
-
-array_access = { identifier ~ left_bracket ~ expression ~ right_bracket }
-
