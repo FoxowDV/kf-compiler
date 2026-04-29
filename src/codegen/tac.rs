@@ -57,11 +57,6 @@ pub enum TACInstruction {
         condition: String,
         label: String,
     },
-    // iffalse x goto label;
-    IfFalseGoto{
-        condition: String,
-        label: String,
-    },
     // print x
     Print {
         value: String,
@@ -122,13 +117,9 @@ impl std::fmt::Display for TACInstruction {
             TACInstruction::Goto { label } => write!(f, "    goto {}", label),
  
             TACInstruction::IfGoto { condition, label } => {
-                write!(f, "    if {} goto {}", condition, label)
+                write!(f, "    if ({}) goto {}", condition, label)
             }
- 
-            TACInstruction::IfFalseGoto { condition, label } => {
-                write!(f, "    iffalse {} goto {}", condition, label)
-            }
- 
+
             TACInstruction::Print { value } => write!(f, "    print {}", value),
  
             TACInstruction::Input { var } => write!(f, "    input {}", var),
@@ -151,7 +142,6 @@ pub struct TACGenerator {
     pub instructions: Vec<TACInstruction>,
     temp_counter: usize,
     label_counter: usize,
-    /// Stack of (loop_start_label, loop_end_label) for break / continue
     loop_stack: Vec<(String, String)>,
 }
 
@@ -164,8 +154,6 @@ impl TACGenerator {
             loop_stack: Vec::new(),
         }
     }
- 
-    // ── helpers ──────────────────────────────────────────────────────────
  
     fn new_temp(&mut self) -> String {
         let t = format!("t{}", self.temp_counter);
@@ -182,8 +170,17 @@ impl TACGenerator {
     fn emit(&mut self, instr: TACInstruction) {
         self.instructions.push(instr);
     }
+
+    fn emit_cond_jump(&mut self, cond: &str, true_label: &str, false_label: &str) {
+        self.emit(TACInstruction::IfGoto { 
+            condition: cond.to_string(), 
+            label: true_label.to_string() 
+        });
+        self.emit(TACInstruction::Goto { 
+            label: false_label.to_string() 
+        });
+    }
  
-    // ── public entry point ──────────────────────────────────────────────
  
     pub fn generate(program: &Program) -> Vec<TACInstruction> {
         let mut generator = TACGenerator::new();
@@ -193,7 +190,6 @@ impl TACGenerator {
         generator.instructions
     }
  
-    // ── functions ───────────────────────────────────────────────────────
  
     fn gen_function(&mut self, func: &FunctionDef) {
         let param_names: Vec<String> = func.params.iter().map(|p| p.name.clone()).collect();
@@ -212,11 +208,9 @@ impl TACGenerator {
         });
     }
  
-    // ── statements ──────────────────────────────────────────────────────
  
     fn gen_statement(&mut self, stmt: &Statement) {
         match &stmt.kind {
-            // ── declarations / assignments ───────────────────────────────
             StatementKind::VariableDeclaration { name, value, .. }
             | StatementKind::ConstDeclaration { name, value, .. } => {
                 let val = self.gen_expression(value);
@@ -234,7 +228,6 @@ impl TACGenerator {
                 });
             }
  
-            // ── control flow ─────────────────────────────────────────────
             StatementKind::If {
                 condition,
                 then_block,
@@ -243,13 +236,12 @@ impl TACGenerator {
             } => {
                 let end_label = self.new_label();
  
-                // first condition
+                let true_label = self.new_label();
                 let mut next_label = self.new_label();
                 let cond = self.gen_expression(condition);
-                self.emit(TACInstruction::IfFalseGoto {
-                    condition: cond,
-                    label: next_label.clone(),
-                });
+                self.emit_cond_jump(&cond, &true_label, &next_label);
+
+                self.emit(TACInstruction::Label { name: true_label });
                 for s in then_block {
                     self.gen_statement(s);
                 }
@@ -257,17 +249,18 @@ impl TACGenerator {
                     label: end_label.clone(),
                 });
  
-                // elif chains
                 for (elif_cond, elif_body) in elif_blocks {
                     self.emit(TACInstruction::Label {
                         name: next_label.clone(),
                     });
+                    
+                    let elif_true = self.new_label();
                     next_label = self.new_label();
                     let c = self.gen_expression(elif_cond);
-                    self.emit(TACInstruction::IfFalseGoto {
-                        condition: c,
-                        label: next_label.clone(),
-                    });
+                    self.emit_cond_jump(&c, &elif_true, &next_label);
+
+                    self.emit(TACInstruction::Label { name: elif_true });
+
                     for s in elif_body {
                         self.gen_statement(s);
                     }
@@ -276,7 +269,6 @@ impl TACGenerator {
                     });
                 }
  
-                // else
                 self.emit(TACInstruction::Label { name: next_label });
                 if let Some(else_stmts) = else_block {
                     for s in else_stmts {
@@ -297,7 +289,6 @@ impl TACGenerator {
                 }
                 let default_label = end_label.clone();
  
-                // emit comparisons
                 for (i, case) in cases.iter().enumerate() {
                     let case_val = self.gen_expression(&case.value);
                     let t = self.new_temp();
@@ -316,7 +307,6 @@ impl TACGenerator {
                     label: default_label,
                 });
  
-                // emit case bodies
                 for (i, case) in cases.iter().enumerate() {
                     self.emit(TACInstruction::Label {
                         name: case_labels[i].clone(),
@@ -339,32 +329,28 @@ impl TACGenerator {
                 body,
             } => {
                 let start_label = self.new_label();
+                let body_label = self.new_label();
                 let update_label = self.new_label();
                 let end_label = self.new_label();
  
-                // init
                 self.gen_statement(init);
  
-                // condition check
                 self.emit(TACInstruction::Label {
                     name: start_label.clone(),
                 });
+
                 let cond = self.gen_expression(condition);
-                self.emit(TACInstruction::IfFalseGoto {
-                    condition: cond,
-                    label: end_label.clone(),
-                });
+                self.emit_cond_jump(&cond, &body_label, &end_label);
+
+                self.emit(TACInstruction::Label { name: body_label });
  
-                // push loop context for break/continue
                 self.loop_stack
                     .push((update_label.clone(), end_label.clone()));
  
-                // body
                 for s in body {
                     self.gen_statement(s);
                 }
  
-                // update
                 self.emit(TACInstruction::Label {
                     name: update_label.clone(),
                 });
@@ -375,8 +361,37 @@ impl TACGenerator {
  
                 self.loop_stack.pop();
             }
+
+            StatementKind::While {
+                condition,
+                body,
+            } => {
+                let start_label = self.new_label();
+                let body_label = self.new_label();
+                let end_label = self.new_label();
  
-            // ── break / continue ─────────────────────────────────────────
+                self.emit(TACInstruction::Label {
+                    name: start_label.clone(),
+                });
+
+                let cond = self.gen_expression(condition);
+                self.emit_cond_jump(&cond, &body_label, &end_label);
+
+                self.emit(TACInstruction::Label { name: body_label });
+ 
+                self.loop_stack
+                    .push((start_label.clone(), end_label.clone()));
+ 
+                for s in body {
+                    self.gen_statement(s);
+                }
+ 
+                self.emit(TACInstruction::Goto { label: start_label });
+                self.emit(TACInstruction::Label { name: end_label });
+ 
+                self.loop_stack.pop();
+            }
+ 
             StatementKind::Break => {
                 if let Some((_, end_label)) = self.loop_stack.last() {
                     self.emit(TACInstruction::Goto {
@@ -393,7 +408,6 @@ impl TACGenerator {
                 }
             }
  
-            // ── function calls ───────────────────────────────────────────
             StatementKind::FunctionCall { name, args } => {
                 let arg_temps: Vec<String> =
                     args.iter().map(|a| self.gen_expression(a)).collect();
@@ -409,7 +423,6 @@ impl TACGenerator {
                 });
             }
  
-            // ── I/O ──────────────────────────────────────────────────────
             StatementKind::Print { value } => {
                 let val = self.gen_expression(value);
                 self.emit(TACInstruction::Print { value: val });
@@ -421,24 +434,20 @@ impl TACGenerator {
                 });
             }
  
-            // ── return ───────────────────────────────────────────────────
             StatementKind::Return { value } => {
                 let val = value.as_ref().map(|e| self.gen_expression(e));
                 self.emit(TACInstruction::Return { value: val });
             }
  
-            // ── expression statement ─────────────────────────────────────
             StatementKind::Expression { expr } => {
                 self.gen_expression(expr);
             }
         }
     }
  
-    // ── expressions (returns the temp / name holding the result) ────────
  
     fn gen_expression(&mut self, expr: &Expression) -> String {
         match &expr.kind {
-            // ── literals ─────────────────────────────────────────────────
             ExpressionKind::IntegerLiteral(n) => n.to_string(),
             ExpressionKind::FloatLiteral(f) => f.to_string(),
             ExpressionKind::BoolLiteral(b) => {
@@ -451,10 +460,8 @@ impl TACGenerator {
             ExpressionKind::CharLiteral(c) => format!("'{}'", c),
             ExpressionKind::StringLiteral(s) => format!("\"{}\"", s),
  
-            // ── identifier ───────────────────────────────────────────────
             ExpressionKind::Identifier(id) => id.clone(),
  
-            // ── binary ───────────────────────────────────────────────────
             ExpressionKind::BinaryOp { op, left, right } => {
                 let l = self.gen_expression(left);
                 let r = self.gen_expression(right);
@@ -483,7 +490,6 @@ impl TACGenerator {
                 t
             }
  
-            // ── unary ────────────────────────────────────────────────────
             ExpressionKind::UnaryOp { op, operand } => {
                 let o = self.gen_expression(operand);
                 let t = self.new_temp();
@@ -499,11 +505,9 @@ impl TACGenerator {
                 t
             }
  
-            // ── postfix (i++, i--) ───────────────────────────────────────
             ExpressionKind::PostfixOp { op, operand } => {
                 let o = self.gen_expression(operand);
                 let t = self.new_temp();
-                // save original value
                 self.emit(TACInstruction::Copy {
                     result: t.clone(),
                     value: o.clone(),
@@ -512,7 +516,6 @@ impl TACGenerator {
                     PostfixOperator::Increment => "+",
                     PostfixOperator::Decrement => "-",
                 };
-                // mutate the variable
                 self.emit(TACInstruction::BinaryOp {
                     result: o.clone(),
                     left: o,
@@ -522,7 +525,6 @@ impl TACGenerator {
                 t
             }
  
-            // ── function call ────────────────────────────────────────────
             ExpressionKind::FunctionCall { name, args } => {
                 let arg_temps: Vec<String> =
                     args.iter().map(|a| self.gen_expression(a)).collect();
@@ -544,7 +546,6 @@ impl TACGenerator {
     }
 }
  
-// ── Dump all instructions to a .tac string ──────────────────────────────────
  
 pub fn instructions_to_string(instructions: &[TACInstruction]) -> String {
     instructions

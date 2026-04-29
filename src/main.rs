@@ -46,7 +46,6 @@ fn main() {
 
     let instructions = TACGenerator::generate(&parsed);
     let tac_output = instructions_to_string(&instructions);
-
     println!("{}", tac_output);
 
 }

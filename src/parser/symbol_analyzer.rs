@@ -356,6 +356,11 @@ fn has_return_statement(statements: &[Statement]) -> bool {
                     return true;
                 }
             }
+            StatementKind::While { body, .. } => {
+                if has_return_statement(body) {
+                    return true;
+                }
+            }
             StatementKind::Switch { cases, .. } => {
                 for case in cases {
                     if has_return_statement(&case.body) {
@@ -662,6 +667,11 @@ fn extract_symbols_from_statements(
 
                     check_expression(condition, symbols, scope)?;
                     check_expression(update, symbols, scope)?;
+                    extract_symbols_from_statements(body, scope, symbols)?;
+                } 
+
+                StatementKind::While { condition, body } => {
+                    check_expression(condition, symbols, scope)?;
                     extract_symbols_from_statements(body, scope, symbols)?;
                 } 
                 _ => {}

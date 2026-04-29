@@ -97,6 +97,10 @@ pub enum StatementKind {
         update: Expression, 
         body: Vec<Statement> 
     },
+    While { 
+        condition: Expression, 
+        body: Vec<Statement> 
+    },
     FunctionCall { name: String, args: Vec<Expression> },
     Print { value: Expression },
     Input { var_name: String },
@@ -410,6 +414,16 @@ fn parse_statement(pair: pest::iterators::Pair<Rule>, source: &str) -> Result<St
             expect_rule(&mut parts, Rule::right_paren)?;
             let body = parse_block(parts.next().unwrap(), source)?;
             StatementKind::For { init, condition, update, body }
+        }
+
+        Rule::while_loop => {
+            let mut parts = inner.into_inner();
+            expect_rule(&mut parts, Rule::ash)?;
+            expect_rule(&mut parts, Rule::left_paren)?;
+            let condition = parse_expression(parts.next().unwrap(), source)?;
+            expect_rule(&mut parts, Rule::right_paren)?;
+            let body = parse_block(parts.next().unwrap(), source)?;
+            StatementKind::While { condition, body }
         }
         
         Rule::print_statement => {
